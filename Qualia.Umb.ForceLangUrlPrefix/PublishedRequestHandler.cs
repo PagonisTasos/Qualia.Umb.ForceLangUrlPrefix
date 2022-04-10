@@ -11,6 +11,12 @@ namespace Qualia.Umb.ForceLangUrlPrefix
     {
         private readonly IDomainService domainService;
         private readonly IDefaultCultureAccessor defaultCultureAccessor;
+        private bool hasDefaultCulture(IDomain d) => d.LanguageIsoCode == defaultCultureAccessor?.DefaultCulture;
+        private IDomain? default_domain => 
+            domainService?
+            .GetAll(includeWildcards: true)?
+            .FirstOrDefault(hasDefaultCulture)
+            ;
 
         public PublishedRequestHandler(
             IDomainService domainService
@@ -22,16 +28,11 @@ namespace Qualia.Umb.ForceLangUrlPrefix
         }
         public void Handle(RoutingRequestNotification notification)
         {
-            var requestBuilder = notification.RequestBuilder;
+            var request = notification.RequestBuilder;
 
-            if (
-                requestBuilder.Domain == null
-                && domainService?.GetAll(true)?
-                    .FirstOrDefault(d => d.LanguageIsoCode == defaultCultureAccessor?.DefaultCulture)
-                    is IDomain dom
-                )
+            if (request.Domain == null && default_domain != null)
             {
-                requestBuilder.SetRedirectPermanent($"{dom.DomainName}{requestBuilder.AbsolutePathDecoded}");
+                request.SetRedirectPermanent($"{default_domain.DomainName}{request.AbsolutePathDecoded}");
             }
         }
     }
