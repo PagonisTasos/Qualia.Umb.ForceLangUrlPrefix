@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using Umbraco.Cms.Core.Events;
+using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Notifications;
 using Umbraco.Cms.Core.PublishedCache;
 using Umbraco.Cms.Core.Services;
@@ -23,10 +24,13 @@ namespace Qualia.Umb.ForceLangUrlPrefix
         {
             var requestBuilder = notification.RequestBuilder;
 
-            if (requestBuilder.Domain == null)
+            if (
+                requestBuilder.Domain == null
+                && domainService?.GetAll(true)?
+                    .FirstOrDefault(d => d.LanguageIsoCode == defaultCultureAccessor?.DefaultCulture)
+                    is IDomain dom
+                )
             {
-                var domains = domainService.GetAll(true);
-                var dom = domains.FirstOrDefault(d => d.LanguageIsoCode == defaultCultureAccessor.DefaultCulture);
                 requestBuilder.SetRedirectPermanent($"{dom.DomainName}{requestBuilder.AbsolutePathDecoded}");
             }
         }
